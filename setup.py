@@ -61,7 +61,7 @@ setup(
         'Django',
         'privex-helpers>=2.10.0',
     ],
-    packages=find_packages(exclude=('tests',)),
+    packages=find_packages(exclude=('tests', 'exampleapp',)),
     include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",

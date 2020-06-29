@@ -1,4 +1,5 @@
 import copy
+import re
 from inspect import isclass
 from typing import List, Union, Dict
 from django.contrib import admin
@@ -8,6 +9,9 @@ from privex.helpers import camel_to_snake, empty, human_name, empty_if, DictObje
 import logging
 
 log = logging.getLogger(__name__)
+
+_RE_ANGLE_PARAMS = re.compile(r'<[a-zA-Z0-9_:-]+>')
+_RE_BRACKET_PARAMS = re.compile(r'\(\?P.*\)')
 
 
 class CustomAdmin(admin.AdminSite):
@@ -30,9 +34,11 @@ class CustomAdmin(admin.AdminSite):
     
     @property
     def custom_urls_reverse(self):
-        for name, obj in self.custom_url_map.items():
+        for _, obj in self.custom_url_map.items():
+            if obj.hidden:
+                continue
             if 'url' not in obj:
-                obj['url'] = reverse(f"admin:{name}")
+                obj['url'] = reverse(f"admin:{obj.name}")
         
         return self.custom_url_map
     
@@ -41,24 +47,128 @@ class CustomAdmin(admin.AdminSite):
         ctx['custom_urls'] = self.custom_urls_reverse
         return ctx
     
-    def add_url(self, view_obj, url: str, human: str = None, hidden: bool = False, name: str = None, **kwargs):
+    def url_is_registered(self, url: str, fail=False):
+        if url is None:
+            return False
         for u in self.custom_urls:
-            if url is None: break
             # noinspection PyProtectedMember
             if u.pattern._route == url:
                 log.warning("URL %s is already registered with CustomAdmin... Not registering!", url)
-                return self.custom_urls
+                if fail:
+                    raise FileExistsError(f"URL '{url}' is already registered with CustomAdmin!")
+                return True
+        return False
+    
+    @staticmethod
+    def detect_name(obj):
+        if hasattr(obj, 'pvx_human_name') and not empty(obj.pvx_human_name):
+            return obj.pvx_human_name
+        elif hasattr(obj, '__name__'):
+            return camel_to_snake(obj.__name__)
+        elif hasattr(obj, '__class__') and hasattr(obj.__class__, '__name__'):
+            return camel_to_snake(obj.__class__.__name__)
+        elif hasattr(obj, 'name') and not empty(obj.name):
+            return obj.name
+
+        log.warning("No name specified by user for view, and cannot infer from view_obj.__name__ or other attributes... obj: %s", obj)
+        return None
+    
+    @staticmethod
+    def regex_has_params(url: str) -> bool:
+        """Check if a URL contains view parameters"""
+        if _RE_ANGLE_PARAMS.search(url) is not None:
+            log.debug("URL '%s' contains angle bracket (<str:example>) parameters", url)
+            return True
+        if _RE_BRACKET_PARAMS.search(url) is not None:
+            log.debug("URL '%s' contains round bracket ( (?P<x>()) ) parameters", url)
+            return True
+        return False
+    
+    def add_url(self, view_obj, url: Union[str, List[str]], human: str = None, hidden: bool = False, name: str = None, **kwargs):
+        if empty(view_obj):
+            log.error(
+                f"view_obj is empty, cannot register! url: {url} | human: {human} | hidden: {hidden} | name: {name} | kwargs: {kwargs}"
+            )
+            return None
+        # When more than one URL is specified in ``url`` using a list/dict, if hide_extra is True, then only the first URL
+        # in the list/dict of URLs will use the user-specified ``hidden`` parameter.
+        # The rest of the URLs will have hidden=True
+        hide_extra = kwargs.get('hide_extra', True)
+        # If hide_params is True, URLs which contain route parameters (e.g. ``<str:username>``) will be hidden by default, to prevent
+        # errors caused by trying to reverse their URL in the admin panel custom view list.
+        hide_params = kwargs.get('hide_params', True)
         
-        name = camel_to_snake(view_obj.__name__) if empty(name) else name
+        ####
+        # Handle URLs specified as a list
+        ####
+        if isinstance(url, list):
+            url = [u for u in list(url) if not self.url_is_registered(u)]
+            name_number = 1
+            orig_name = name if not empty(name) else self.detect_name(view_obj)
+            orig_hidden = hidden
+            for u in url:
+                if name_number > 1:
+                    name = f"{orig_name}_{name_number}"
+                    if hide_extra:
+                        hidden = True
+                if self.regex_has_params(u) and hide_params:
+                    hidden = True
+
+                self.add_url(view_obj, url=u, human=human, hidden=hidden, name=name, **kwargs)
+                name_number += 1
+                hidden = orig_hidden
+            
+            return self.custom_urls
+        ####
+        # Handle URLs specified as a dict of url:name
+        ####
+        elif isinstance(url, dict):
+            # url = {u: n for u, n in dict(url).items() if not self.url_is_registered(u)}
+            orig_hidden = hidden
+            name_number = 1
+            for u, n in url.items():
+                if self.url_is_registered(u):
+                    continue
+                if name_number > 1 and hide_extra:
+                    hidden = True
+                if self.regex_has_params(u) and hide_params:
+                    hidden = True
+                self.add_url(view_obj, url=u, human=human, hidden=hidden, name=n, **kwargs)
+                name_number += 1
+                hidden = orig_hidden
+            return self.custom_urls
+        ####
+        # Handle a plain string URL
+        ####
+        elif isinstance(url, str):
+            if self.url_is_registered(url):
+                return self.custom_urls
+
+        ####
+        # String URL handling continued
+        ####
+        if empty(name):
+            if hasattr(view_obj, '__name__'):
+                name = camel_to_snake(view_obj.__name__)
+            else:
+                log.warning("No name specified by user for view, and cannot infer from view_obj.__name__ ...")
+                name = None
+        
+        # If a URL contains Django route parameters e.g. ``<str:example>``, it's best to hide them by default, otherwise
+        # they'll cause issues when they're reversed in .custom_urls_reverse
+        if self.regex_has_params(url) and hide_params:
+            hidden = True
+        
+        # Class-based views need to be registered using .as_view()
         view_obj = view_obj.as_view() if isclass(view_obj) else view_obj
         
         self.custom_urls.append(
             path(url, view_obj, name=name)
         )
-        self.custom_url_map[name] = DictObject(
+        self.custom_url_map[url] = DictObject(
             name=name,
             route=url,
-            human=empty_if(human, human_name(name)),
+            human=empty_if(human, human_name(empty_if(name, "unknown_custom_view"))),
             hidden=hidden
         )
         return self.custom_urls
@@ -94,7 +204,7 @@ def ct_register(model: Model = None, url: str = None, human: str = None, hidden:
     return _decorator
 
 
-def register_url(url: str = None, human: str = None, hidden: bool = False, name: str = None, **kwargs):
+def register_url(url: Union[str, List[str]] = None, human: str = None, hidden: bool = False, name: str = None, **kwargs):
     """
     Register a custom admin view with PVXAdmin
     
@@ -136,7 +246,7 @@ def register_url(url: str = None, human: str = None, hidden: bool = False, name:
     def _decorator(cls):
         ctadmin.wrap_register(
             cls,
-            url=camel_to_snake(cls.__name__) if empty(url) else url,
+            url=camel_to_snake(cls.__name__) + '/' if empty(url) else url,
             human=human, hidden=hidden, name=name, **kwargs
         )
     
@@ -166,7 +276,7 @@ def setup_admin(old_admin, discover=True):
     admin.site = ctadmin
     # noinspection PyProtectedMember
     admin.site._registry = copy.copy(old._registry)
-    admin.register = ct_register
+    # admin.register = ct_register
     admin.sites.site = admin.site
     if discover:
         admin.autodiscover()

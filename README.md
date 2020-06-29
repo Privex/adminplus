@@ -98,6 +98,8 @@ urlpatterns = [
 
 # Usage
 
+## Registering standard ModelView's
+
 Register your ModelViews as normal in your `admin.py`
 
 ```python
@@ -109,6 +111,8 @@ class SomeModelAdmin(admin.ModelAdmin):
     pass
 
 ```
+
+## Registering custom admin views
 
 You can register custom views using the `privex.adminplus.admin.register_url`, including both function-based and class-based
 views. You don't even need to specify a name or URL, it can be automatically inferred from the class/function name.
@@ -150,5 +154,88 @@ def lorem(request):
 def some_internal_view(request):
     return HttpResponse(b"this is an internal view, not for just browsing!")
 
+```
+
+## Admin views with multiple URLs and route parameters
+
+Below are two examples: multiple URLs for one view by specifying them as a list - and multiple URLs by specifying them
+as a dictionary (dicts allow you to set a static `admin:` prefixed name for each URL)
+
+```python
+from django.contrib.auth.models import User
+from django.http import HttpResponse, JsonResponse, HttpRequest
+from privex.adminplus.admin import register_url
+
+# You can specify multiple URLs as a list.
+# By default, all URLs other than the first one specified will be set as hidden=False - to avoid duplicate
+# custom view entries in the admin panel
+@register_url(['user_info/', 'user_info/<str:username>'])
+def user_info(request, username=None):
+    if username:
+        u = User.objects.filter(username=username).first()
+        return JsonResponse(dict(id=u.id, username=u.username, first_name=u.first_name, last_name=u.last_name))
+    return JsonResponse(dict(error=True, message="no username in URL"))
+
+# If you want the URLs to have stable URL names, you can pass the URLs as a dictionary of `url: name` instead,
+# which will register the URLs under the given names.
+# NOTE: Just like when passing a list, only the first item in the dictionary will have hidden=False
+@register_url({
+    'user_info/': 'user_info_index',
+    'user_info/<str:username>': 'user_info_by_username'
+})
+def user_info(request, username=None):
+    if username:
+        u = User.objects.filter(username=username).first()
+        return JsonResponse(dict(id=u.id, username=u.username, first_name=u.first_name, last_name=u.last_name))
+    return JsonResponse(dict(error=True, message="no username in URL"))
+
+```
+
+When more than one URL is specified in ``url`` using a list/dict, if hide_extra is True, then only the first URL
+in the list/dict of URLs will use the user-specified ``hidden`` parameter.
+The rest of the URLs will have `hidden=True`
+
+To disable automatically hiding "extra" URLs, pass hide_extra=False like so:
+
+```python
+@register_url(hide_extra=False)
+```
+
+If hide_params is True, URLs which contain route parameters (e.g. ``<str:username>``) will be hidden by default, to prevent
+errors caused by trying to reverse their URL in the admin panel custom view list.
+
+To disable automatically hiding URLs which contain route parameters, pass hide_params=False like so:
+
+```python
+@register_url(hide_params=False)
+```
+
+
+# Included Example App
+
+For development and testing purposes, the folder `exampleapp` contains a basic Django project which tries to use
+most features of `privex-adminplus`, so that they can be tested by hand in an actual Django application.
+
+To use exampleapp:
+
+```sh
+git clone https://github.com/Privex/adminplus
+cd adminplus
+# install requirements
+pip3 install -r requirements.txt
+
+# For exampleapp to be able to resolve the 'privex/adminplus' module, you must set the PYTHONPATH
+# to the base folder of the privex-adminplus project.
+export PYTHONPATH="$PWD"
+
+# Enter exampleapp and migrate the Django DB (auto-creates an sqlite3 database at exampleapp/db.sqlite3)
+cd exampleapp
+./manage.py migrate
+
+# Create an admin user
+./manage.py createsuperuser
+
+# Start the dev server and then navigate to http://127.0.0.1:8000/admin
+./manage.py runserver
 ```
 
