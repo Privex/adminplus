@@ -1,0 +1,9 @@
+Django
+python-dotenv
+privex-helpers
+attrs
+
+# Unit testing
+django-nose
+coverage
+codecov
