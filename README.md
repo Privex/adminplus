@@ -7,7 +7,7 @@ Privex's Custom Admin for Django
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/privex-adminplus)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/privex-adminplus) 
 ![PyPI - Django Version](https://img.shields.io/pypi/djversions/privex-adminplus)
-![GitHub last commit](https://img.shields.io/github/last-commit/Privex/privex-adminplus)
+![GitHub last commit](https://img.shields.io/github/last-commit/Privex/adminplus)
 
 This is a custom admin views extension for the [Django Web Framework](https://www.djangoproject.com/), which has been
 designed as an alternative to [Django AdminPlus](https://github.com/jsocol/django-adminplus).
