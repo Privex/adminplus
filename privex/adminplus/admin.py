@@ -200,6 +200,7 @@ def ct_register(model: Model = None, url: str = None, human: str = None, hidden:
         ctadmin.wrap_register(
             cls, model=model, url=url, human=human, hidden=hidden, name=name, **kwargs
         )
+        return cls
     
     return _decorator
 
@@ -249,6 +250,7 @@ def register_url(url: Union[str, List[str]] = None, human: str = None, hidden: b
             url=camel_to_snake(cls.__name__) + '/' if empty(url) else url,
             human=human, hidden=hidden, name=name, **kwargs
         )
+        return cls
     
     return _decorator
 
