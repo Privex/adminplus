@@ -34,15 +34,35 @@ Except as contained in this notice, the name(s) of the above copyright holders s
 otherwise to promote the sale, use or other dealings in this Software without prior written authorization.
 """
 
-from setuptools import setup, find_packages
 import os
+import warnings
+from os.path import dirname, abspath, join, normpath
+
+from setuptools import setup, find_packages
 from privex import adminplus
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 # allow setup.py to be run from any path
-os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
+os.chdir(normpath(join(abspath(__file__), os.pardir)))
+# This results in an absolute path to the folder where this setup.py file is contained
+BASE_DIR = dirname(abspath(__file__))
+
+extra_commands = {}
+
+try:
+    # noinspection PyUnresolvedReferences
+    from privex.helpers import settings, BumpCommand, ExtrasCommand
+    
+    # The file which contains "VERSION = '1.2.3'"
+    settings.VERSION_FILE = join(BASE_DIR, 'privex', 'adminplus', '__init__.py')
+    
+    extra_commands['extras'] = ExtrasCommand
+    extra_commands['bump'] = BumpCommand
+except (ImportError, AttributeError) as e:
+    warnings.warn('Failed to import privex.helpers.setuppy.commands - the commands "extras" and "bump" may not work.')
+    warnings.warn(f'Error Reason: {type(e)} - {str(e)}')
 
 setup(
     name='privex_adminplus',
@@ -55,7 +75,7 @@ setup(
     url="https://github.com/Privex/adminplus",
     author='Chris (Someguy123) @ Privex',
     author_email='chris@privex.io',
-
+    cmdclass=extra_commands,
     license='MIT',
     install_requires=[
         'Django',

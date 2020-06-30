@@ -29,7 +29,6 @@ class CustomAdmin(admin.AdminSite):
     def get_urls(self):
         _urls = super(CustomAdmin, self).get_urls()
         urls = self.custom_urls
-        log.debug("Parent URLs: %s || Custom URLs: %s", _urls, urls)
         return _urls + urls
     
     @property
@@ -77,10 +76,10 @@ class CustomAdmin(admin.AdminSite):
     def regex_has_params(url: str) -> bool:
         """Check if a URL contains view parameters"""
         if _RE_ANGLE_PARAMS.search(url) is not None:
-            log.debug("URL '%s' contains angle bracket (<str:example>) parameters", url)
+            # log.debug("URL '%s' contains angle bracket (<str:example>) parameters", url)
             return True
         if _RE_BRACKET_PARAMS.search(url) is not None:
-            log.debug("URL '%s' contains round bracket ( (?P<x>()) ) parameters", url)
+            # log.debug("URL '%s' contains round bracket ( (?P<x>()) ) parameters", url)
             return True
         return False
     
@@ -179,7 +178,7 @@ class CustomAdmin(admin.AdminSite):
             if isclass(view) and issubclass(view, admin.ModelAdmin):
                 if empty(model):
                     raise ValueError(f"Wrapped ModelAdmin {view.__name__} but no model passed to ct_register...")
-                log.debug("Registering ModelAdmin view: %s", view.__name__)
+                # log.debug("Registering ModelAdmin view: %s", view.__name__)
                 self.register(model, view)
                 return
             raise ValueError("Wrapped classes without url's must subclass admin.ModelAdmin.")

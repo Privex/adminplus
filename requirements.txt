@@ -1,7 +1,12 @@
 Django
 python-dotenv
-privex-helpers
+privex-helpers[setuppy]
 attrs
+
+# Packaging
+wheel
+setuppy
+twine
 
 # Unit testing
 django-nose
