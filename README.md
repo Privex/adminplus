@@ -2,7 +2,7 @@
 Privex's Custom Admin for Django
 =================================
 
-[![PyPi Version](https://img.shields.io/pypi/v/django-lockmgr.svg)](https://pypi.org/project/privex-adminplus/)
+[![PyPi Version](https://img.shields.io/pypi/v/privex-adminplus.svg)](https://pypi.org/project/privex-adminplus/)
 ![License Button](https://img.shields.io/pypi/l/privex-adminplus) 
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/privex-adminplus)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/privex-adminplus) 
