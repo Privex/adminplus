@@ -1,7 +1,7 @@
 import copy
 import re
 from inspect import isclass
-from typing import List, Union, Dict
+from typing import List, Optional, Union, Dict
 from django.contrib import admin
 from django.db.models import Model
 from django.urls import URLResolver, URLPattern, path, reverse
@@ -12,6 +12,8 @@ log = logging.getLogger(__name__)
 
 _RE_ANGLE_PARAMS = re.compile(r'<[a-zA-Z0-9_:-]+>')
 _RE_BRACKET_PARAMS = re.compile(r'\(\?P.*\)')
+
+URL_TYPES = Optional[Union[str, List[str], Dict[str, str]]]
 
 
 class CustomAdmin(admin.AdminSite):
@@ -83,7 +85,7 @@ class CustomAdmin(admin.AdminSite):
             return True
         return False
     
-    def add_url(self, view_obj, url: Union[str, List[str]], human: str = None, hidden: bool = False, name: str = None, **kwargs):
+    def add_url(self, view_obj, url: URL_TYPES, human: str = None, hidden: bool = False, name: str = None, **kwargs):
         if empty(view_obj):
             log.error(
                 f"view_obj is empty, cannot register! url: {url} | human: {human} | hidden: {hidden} | name: {name} | kwargs: {kwargs}"
@@ -172,7 +174,7 @@ class CustomAdmin(admin.AdminSite):
         )
         return self.custom_urls
     
-    def wrap_register(self, view, model: Model = None, url: str = None, human: str = None, hidden: bool = False, name: str = None,
+    def wrap_register(self, view, model: Model = None, url: URL_TYPES = None, human: str = None, hidden: bool = False, name: str = None,
                       **kwargs):
         if url is None:
             if isclass(view) and issubclass(view, admin.ModelAdmin):
@@ -189,7 +191,7 @@ class CustomAdmin(admin.AdminSite):
 ctadmin = CustomAdmin()
 
 
-def ct_register(model: Model = None, url: str = None, human: str = None, hidden: bool = False, name: str = None, **kwargs):
+def ct_register(model: Model = None, url: URL_TYPES = None, human: str = None, hidden: bool = False, name: str = None, **kwargs):
     """
     Generally not needed, as :func:`django.contrib.admin.decorators.register` should still work.
     
@@ -204,7 +206,7 @@ def ct_register(model: Model = None, url: str = None, human: str = None, hidden:
     return _decorator
 
 
-def register_url(url: Union[str, List[str]] = None, human: str = None, hidden: bool = False, name: str = None, **kwargs):
+def register_url(url: URL_TYPES = None, human: str = None, hidden: bool = False, name: str = None, **kwargs):
     """
     Register a custom admin view with PVXAdmin
     
