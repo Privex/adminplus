@@ -1,2 +1,5 @@
 include privex/adminplus/templates/admin/index.html
+include privex/adminplus/templates/admin/nav_sidebar.html
+include privex/adminplus/templates/admin/custom_pages_box.html
+include privex/adminplus/backports/templates/admin/app_list.html
 

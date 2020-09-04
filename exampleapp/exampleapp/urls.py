@@ -16,9 +16,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from privex.adminplus.admin import setup_admin
+# from privex.adminplus.admin import setup_admin
 
-setup_admin(admin)
+# setup_admin(admin)
 
 
 urlpatterns = [

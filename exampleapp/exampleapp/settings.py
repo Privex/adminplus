@@ -30,10 +30,14 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Application definition
 
+AUTO_SETUP_ADMIN = True
+ADMINPLUS_QUIET = True
+
 INSTALLED_APPS = [
     # 'django.contrib.admin',
     'privex.adminplus',
-    'privex.adminplus.apps.PVXAdmin',
+    # 'privex.adminplus.backports',
+    # 'privex.adminplus.apps.PVXAdmin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -63,6 +67,7 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
+                # 'privex.adminplus.admin.pvx_context_processor',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],

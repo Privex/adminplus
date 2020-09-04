@@ -6,6 +6,11 @@ __pycache__
 venv
 .env
 
+# Some IDEs have problems finding other privex packages when there's a privex folder in the python path,
+# so devs may add symlinks inside of privex/ to point to the installed packages.
+privex/helpers
+privex/loghelper
+
 # PyPi build files
 build
 dist

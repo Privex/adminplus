@@ -44,16 +44,37 @@ We recommend at least Python 3.6 - we cannot guarantee compatibility with older 
 pip3 install privex-adminplus
 ```
 
-# Replace the default admin with Privex AdminPlus
+# Quickstart
 
-First you need to comment out `django.contrib.admin` at the start of your `INSTALLED_APPS`.
+### Install the `privex-adminplus` package from PyPi using `pip3` / `pipenv`
 
-Below the commented out `django.contrib.admin`, you'll need to add `privex.adminplus` to register the base Django app itself,
-followed by `privex.adminplus.apps.PVXAdmin` to register the admin panel.
+```shell script
+# Using the standard 'pip3' package manager
+pip3 install -U privex-adminplus
+
+# Using 'pipenv' - third party package manager + virtualenv manager + interpreter version manager
+pipenv install privex-adminplus
+```
+
+### Add to `INSTALLED_APPS` in `YourProject/yourapp/settings.py`
+
+Open `settings.py` in your Django project. 
+
+Remove the default `django.contrib.admin` from INSTALLED_APPS. Then add `privex.adminplus` followed by
+`privex.adminplus.apps.PVXAdmin` to the **START** / **TOP** of `INSTALLED_APPS`.
 
 ```python
 INSTALLED_APPS = [
+    # You must delete / comment out the line for the default admin (django.contrib.admin)   
     # 'django.contrib.admin',
+
+    # NOTE: If you are running a version of Django older than 3.1 (3.0.9, 2.2.15 etc.), then you should 
+    #       add 'privex.adminplus.backports' BEFORE the 'privex.adminplus' and PVXAdmin apps.
+    #       The backports app is auto-loaded if it's not in INSTALLED_APPS and adminplus detects you need it, but the
+    #       auto-loading will slow down your app's startup, and may cause issues with apps that should only be loaded ONCE.
+
+    # 'privex.adminplus.backports',
+
     'privex.adminplus',
     'privex.adminplus.apps.PVXAdmin',
     # ...
@@ -63,7 +84,7 @@ INSTALLED_APPS = [
 ]   
 ```
 
-# Register the custom admin in your master `urls.py` file
+### Register the custom admin in your master `urls.py` file
 
 In your project's main Django application (generally the folder containing `settings.py` and `wsgi.py`), you'll
 need to comment out any previous `admin.site` statements, and add `setup_admin(admin)` before you define any urls.
@@ -77,9 +98,162 @@ from privex.adminplus.admin import setup_admin
 # This will automatically run admin.autodiscover(), so you don't need to call both setup_admin() and admin.autodiscover() 
 setup_admin(admin)
 
-#### If you have a special app where admin.autodiscover() shouldn't be ran yet, you can run setup_admin
-#### with discover=False to disable running autodiscover
+# If admin.autodiscover() shouldn't be ran yet, pass discover=False to disable running autodiscover
 # setup_admin(admin, discover=False)
+
+##### Ensure any previous admin.xxx statements are deleted / commented out to avoid conflict.
+# admin.site = something
+# admin.sites.site = admin.site
+# admin.autodiscover()
+
+urlpatterns = [   # Mount admin.site.urls as normal, no changes needed here
+    path('admin/', admin.site.urls),
+    # your app URLs...
+]
+
+```
+
+
+# Notice about AdminPlus Django Back-ports!
+
+## Why do you include the `backports` module, containing code ripped from the official Django project?
+
+While Django is well known for their effort towards ensuring backwards compatibility, the Django admin panel is quite
+complex, and frequently has potentially breaking updates such as new template files, layout changes, along with use of
+newer Django functions such as new template tags.
+
+These types of changes can cause Django Admin plugins/wrappers/replacements such as Privex AdminPlus to either stop working,
+or may simply cause bugs such as the custom pages admin panel list not rendering correctly, custom views won't load etc.
+
+Often, to deal these regressions caused by new Django releases, we have to update Privex AdminPlus to work with the newer
+Django version. However, by updating the code to support a newer Django version, it may break AdminPlus on older versions
+of Django.
+
+To allow Privex AdminPlus to support newer versions of Django, while retaining support for older versions, we include an
+additional Django application: `privex.adminplus.backports`
+
+## What is the `backports` module?
+
+The **backports** application is a Django app which contains backported views, admin panel templates, template tags, and
+other parts of the [official Django admin panel code](https://github.com/django/django/tree/master/django/contrib/admin)
+which have been copied from a newer version of Django such as **3.1**, **3.2** or even from the latest development code.
+
+The backported code is lightly tested using the included `exampleapp` project, by running the project using a development
+server, and then browsing through the admin panel - hand testing both Privex AdminPlus custom views, as well as the
+standard `ModelAdmin` views (e.g. creating, editing, viewing and deleting database objects).
+
+Note that the `backports` app is only tested against "older" versions of Django, which are missing at least one critical feature
+from the latest stable version of Django that had to be backported.
+
+## Should I add the backports app to INSTALLED_APPS? / How can I disable backports?
+
+### Automatic loading of the backports app
+
+As of Privex AdminPlus 1.0.0 - the oldest Django framework version which **does not require backports** to be able
+to use AdminPlus is Django `3.1.0`
+
+To keep the installation process simple, and to ensure compatibility with those upgrading from `privex-adminplus < 1.0.0`,
+the `privex.adminplus.apps.PVXAdmin` class contains a Django version check within it's `ready()` method.
+
+If it detects that you're running a Django version which requires backported features, and `privex.adminplus.backports`
+isn't in your `INSTALLED_APPS`, then it will dynamically inject `privex.adminplus.backports` into `INSTALLED_APPS`,
+and attempt to trigger a re-initialisation of all `INSTALLED_APPS` to ensure backports gets loaded.
+
+If your Django app is configured to log messages which are `WARNING` or higher, you may see the automatic backport app loader
+in your logs when you first start your app:
+
+```
+PrivexAdminPlusConfig.ready :: Django version is < 3.1 :: Ver is: 2.2.15
+'privex.adminplus.backports' not in INSTALLED_APPS... adding to apps and re-initialising!
+Re-initialising all Django Apps...
+Finished re-initialising.
+```
+
+### Do not rely on the backports auto-loader
+
+While the backports app is auto-loaded if it's not in INSTALLED_APPS and adminplus detects you need it, 
+**auto-loading will slow down your app's startup, and may cause issues with apps that should only be loaded ONCE.**
+
+To prevent the risk of strange issues related to the backports auto-loader, if you are running a version of Django older 
+than 3.1.0 (3.0.9, 2.2.15 etc.), then you should add `'privex.adminplus.backports'` BEFORE the `'privex.adminplus'` 
+and PVXAdmin apps in your `INSTALLED_APPS`
+
+```python
+INSTALLED_APPS = [
+    'privex.adminplus.backports',
+    'privex.adminplus',
+    'privex.adminplus.apps.PVXAdmin',
+    # ...
+]
+```
+
+### Force disabling the backports auto-loader
+
+If you are running on an older version of Django which normally requires our `privex.adminplus.backports` Django app,
+but you don't want to / can't use our backports app, it's possible to disable the backports auto-loader.
+
+Reason Examples:
+
+- Because of another Django app / Python package which conflicts with our backports
+- Because you've made your own backports/modifications to views/templates/classes etc. which conflicts with our backports app.
+
+**NOTE:** The backports auto-loader only loads `backports` if it's **not already loaded** (listed in INSTALLED_APPS),
+AND **you're running an older version of Django** which requires our `backports` app to make pvx-adminplus work at all.
+
+To force disable automatic loading of `privex.adminplus.backports`, set `AUTO_BACKPORT` to `False` in your `settings.py`
+file for your project.
+
+```python
+# Disable privex.adminplus's automatic loading of privex.adminplus.backports
+AUTO_BACKPORT = False
+
+INSTALLED_APPS = [
+    'privex.adminplus',
+    'privex.adminplus.apps.PVXAdmin',
+    # ...
+]
+
+```
+
+
+
+# Replace the default admin with Privex AdminPlus
+
+First you need to comment out `django.contrib.admin` at the start of your `INSTALLED_APPS`.
+
+Below the commented out `django.contrib.admin`, you'll need to add `privex.adminplus` to register the base Django app itself,
+followed by `privex.adminplus.apps.PVXAdmin` to register the admin panel.
+
+```python
+INSTALLED_APPS = [
+    # 'django.contrib.admin',
+
+    # NOTE: If you are running a version of Django older than 3.1 (3.0.9, 2.2.15 etc.), then you should 
+    #       add 'privex.adminplus.backports' BEFORE the 'privex.adminplus' and PVXAdmin apps.
+    #       The backports app is auto-loaded if it's not in INSTALLED_APPS and adminplus detects you need it, but the
+    #       auto-loading will slow down your app's startup, and may cause issues with apps that should only be loaded ONCE.
+
+    # 'privex.adminplus.backports',
+
+    'privex.adminplus',
+    'privex.adminplus.apps.PVXAdmin',
+    # ...
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    # ...
+]   
+```
+
+# Remove any old admin.site statements from your `urls.py` file
+
+In your project's main Django application (generally the folder containing `settings.py` and `wsgi.py`), you'll
+need to comment out any previous `admin.site` statements, or `admin.autodiscovery()` if they're present.
+
+You do NOT need to remove the admin URL mount `path('admin/', admin.site.urls)`
+
+```python
+from django.contrib import admin
+from django.urls import path
 
 #####
 # Ensure any previous admin.xxx statements are comment out to avoid conflict.

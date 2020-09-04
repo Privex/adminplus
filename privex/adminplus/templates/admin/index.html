@@ -1,22 +1,9 @@
 {% extends "admin/index.html" %}
 
-{% block sidebar %}
-{{ block.super }}
+{% block content %}
 <div id="content-main">
-    <div class="module">
-        <table style="width: 100%">
-            <caption>
-                <span class="section">Custom Pages</span>
-            </caption>
-            {% for name, obj in custom_urls.items %}
-            {% if not obj.hidden %}
-            <tr class="model-{{ model.object_name|lower }}">
-                <th scope="row"><a href="{{ obj.url }}">{{ obj.human }}</a></th>
-            </tr>
-            {% endif %}
-            {% endfor %}
-        </table>
-    </div>
+    {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+    {% include 'admin/custom_pages_box.html' %}
 </div>
 
 {% endblock %}

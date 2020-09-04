@@ -1,0 +1,77 @@
+{% load i18n blocktranslate %}
+<!--
+This file is a backported admin template from Django 3.1 for use with older Django versions, including Django 2.2.x and 3.0.x
+
+**WARNING**: The code in this file DOES NOT fall under the same License as Privex AdminPlus (X11/MIT), it falls under
+             the Django Project license: https://github.com/django/django/blob/master/LICENSE
+
+Extracted from Django Github branch '3.1':
+
+    https://github.com/django/django/blob/3.1/django/contrib/admin/templates/admin/app_list.html
+
+Django Project Copyright::
+
+    Copyright (c) Django Software Foundation and individual contributors.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
+    conditions are met:
+
+    1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following
+    disclaimer in the documentation and/or other materials provided with the distribution.
+
+    3. Neither the name of Django nor the names of its contributors may be used to endorse or promote products derived from this
+    software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
+    BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+    IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+    OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+    OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+{% if app_list %}
+{% for app in app_list %}
+<div class="app-{{ app.app_label }} module{% if app.app_url in request.path %} current-app{% endif %}">
+    <table>
+        <caption>
+            <a href="{{ app.app_url }}"
+               class="section"
+               title="{% blocktranslate with name=app.name %}Models in the {{ name }} application{% endblocktranslate %}">
+                {{ app.name }}
+            </a>
+        </caption>
+        {% for model in app.models %}
+        <tr class="model-{{ model.object_name|lower }}{% if model.admin_url in request.path %} current-model{% endif %}">
+            {% if model.admin_url %}
+            <th scope="row"><a href="{{ model.admin_url }}" {% if model.admin_url in request.path %} aria-current="page" {% endif %}>{{ model.name }}</a></th>
+            {% else %}
+            <th scope="row">{{ model.name }}</th>
+            {% endif %}
+
+            {% if model.add_url %}
+            <td><a href="{{ model.add_url }}" class="addlink">{% translate 'Add' %}</a></td>
+            {% else %}
+            <td></td>
+            {% endif %}
+
+            {% if model.admin_url and show_changelinks %}
+            {% if model.view_only %}
+            <td><a href="{{ model.admin_url }}" class="viewlink">{% translate 'View' %}</a></td>
+            {% else %}
+            <td><a href="{{ model.admin_url }}" class="changelink">{% translate 'Change' %}</a></td>
+            {% endif %}
+            {% elif show_changelinks %}
+            <td></td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endfor %}
+{% else %}
+<p>{% translate 'You don’t have permission to view or edit anything.' %}</p>
+{% endif %}

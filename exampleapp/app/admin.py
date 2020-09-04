@@ -4,7 +4,9 @@ from django.http import HttpResponse, JsonResponse, HttpRequest
 from django.views import View
 from privex.adminplus.admin import ct_register, register_url, CustomAdmin
 from app.models import Comment, Post
+import logging
 
+log = logging.getLogger(__name__)
 
 ctadmin: CustomAdmin = admin.site
 
@@ -21,7 +23,22 @@ class CommentAdmin(admin.ModelAdmin):
 
 @register_url(url='hello/')
 def testing_admin(request):
+    log.warning("ctadmin.custom_urls: %s", ctadmin.custom_urls)
+    log.warning("ctadmin.custom_urls_reverse: %s", ctadmin.custom_urls_reverse)
+    log.warning("ctadmin.custom_url_map: %s", ctadmin.custom_url_map)
     return HttpResponse(b"hello world")
+
+
+@register_url(url='debug_urls/')
+def debug_urls(request):
+    log.warning("ctadmin.custom_urls: %s", ctadmin.custom_urls)
+    log.warning("ctadmin.custom_urls_reverse: %s", ctadmin.custom_urls_reverse)
+    log.warning("ctadmin.custom_url_map: %s", ctadmin.custom_url_map)
+    return JsonResponse(dict(
+        custom_urls=[str(u) for u in ctadmin.custom_urls],
+        custom_url_map=ctadmin.custom_url_map,
+        custom_urls_reverse=ctadmin.custom_urls_reverse
+    ))
 
 
 @register_url(hidden=True)
@@ -64,3 +81,24 @@ def post_info(request: HttpRequest, post_id=None):
         return JsonResponse(res)
     
     return JsonResponse(dict(error=True, message="no post id in URL"))
+
+
+def yet_another_test_view(request: HttpRequest):
+    return JsonResponse(dict(hello='world'))
+
+
+ctadmin.add_url(yet_another_test_view, 'yet_another_test_view/')
+
+
+class DecWrappedManual(View):
+    def get(self, request):
+        return JsonResponse(dict(view_name=self.__class__.__name__))
+
+
+# ca = admin.site    # type: CustomAdmin
+# from privex.adminplus.admin import ctadmin as ctd
+# log.error("ctadmin is: %s", ctadmin)
+# log.error("ctd is: %s", ctd)
+
+
+DecWrappedManual = register_url('wrapped_manual_dec/', human='View manually wrapped with decorator')(DecWrappedManual)

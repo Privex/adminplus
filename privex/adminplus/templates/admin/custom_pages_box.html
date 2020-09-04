@@ -1,0 +1,14 @@
+<div class="module">
+    <table style="width: 100%">
+        <caption>
+            <span class="section">Custom Pages</span>
+        </caption>
+        {% for name, obj in custom_urls.items %}
+        {% if not obj.hidden %}
+        <tr class="model-{{ model.object_name|lower }}">
+            <th scope="row"><a href="{{ obj.url }}">{{ obj.human }}</a></th>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </table>
+</div>

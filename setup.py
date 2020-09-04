@@ -79,9 +79,10 @@ setup(
     license='MIT',
     install_requires=[
         'Django',
-        'privex-helpers>=2.10.0',
+        'privex-helpers>=2.18.0',
     ],
-    packages=find_packages(exclude=('tests', 'exampleapp',)),
+    # packages=find_packages(exclude=('tests', 'exampleapp', 'privex.helpers',)),
+    packages=find_packages(include=('privex.adminplus', 'privex.adminplus.*')),
     include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",

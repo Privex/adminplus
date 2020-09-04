@@ -44,4 +44,7 @@ Repo: https://github.com/Privex/adminplus
 
 name = 'adminplus'
 
-VERSION = '0.9.3'
+VERSION = '1.0.0'
+
+default_app_config = 'privex.adminplus.apps.PrivexAdminPlusConfig'
+
